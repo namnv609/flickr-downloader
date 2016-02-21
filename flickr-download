@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+from bs4 import BeautifulSoup
+import requests
+import json
+import re
+import pdb
+
+requests.packages.urllib3.disable_warnings()
+
+FLICKR_BASE_URL = "https://api.flickr.com/services/rest?per_page=25&page=%d&extras=url_c,url_f,url_h,url_k,url_l,url_m,url_n,url_o,url_q,url_s,url_sq,url_t,url_z&get_user_info=1&jump_to=&user_id=%s&view_as=use_pref&sort=use_pref&viewerNSID=&method=flickr.people.getPhotos&csrf=&api_key=%s&format=json&hermes=1&hermesClient=1&reqId=%s&nojsoncallback=1"
+FLICKR_API_KEY = "d44e0c9c36fbd76b02651ce3cc0beac4"
+
+def flickrDownload(flickrUserId):
+    flickrUserRequest = requests.get("https://www.flickr.com/photos/%s/" % flickrUserId)
+
+    if flickrUserRequest.status_code == 200:
+        reqId = getFlickrReqId(flickrUserRequest.text)
+
+        apiRequest = requests.get(FLICKR_BASE_URL % (1, flickrUserId, FLICKR_API_KEY, reqId))
+
+        if apiRequest.status_code == 200:
+            apiResponse = apiRequest.json()
+
+            if len(apiResponse['photos']['photo']) > 0:
+                for photo in apiResponse['photos']['photo']:
+                    print photo['url_k_cdn']
+
+
+def getFlickrReqId(requestContent):
+    requestId = re.search(r'(root\.reqId.*\;$)', requestContent, re.MULTILINE)
+
+    if requestId != None:
+        return requestId.group(1)[14:-2]
+
+    return None
+
+if __name__ == "__main__":
+    flickrDownload("18187793@N07")
